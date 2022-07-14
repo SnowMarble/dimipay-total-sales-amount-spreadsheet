@@ -77,7 +77,7 @@ export default class {
 
   public async generate({
     year = new Date().getFullYear(),
-    month = new Date().getMonth(),
+    month = new Date().getMonth() + 1,
     separator = true,
     skipZero = false,
     force = false,
