@@ -17,8 +17,6 @@ const options = program.opts();
 async function generateFile() {
   const generator = new Generator();
 
-  console.log(options);
-
   await generator.generate({
     year: options.year,
     month: options.month,
