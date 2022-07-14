@@ -1,7 +1,7 @@
 import * as Excel from 'exceljs';
 import { prompt } from 'enquirer';
 import { existsSync } from 'fs';
-import prisma from './libs/prisma';
+import { PrismaClient } from '@prisma/client';
 
 interface GenerateParams {
   year?: number;
@@ -15,10 +15,12 @@ interface GenerateParams {
 export default class {
   private workbook: Excel.Workbook;
   private worksheet: Excel.Worksheet;
+  private prisma: PrismaClient;
 
   constructor() {
     this.workbook = new Excel.Workbook();
     this.worksheet = this.workbook.addWorksheet();
+    this.prisma = new PrismaClient();
   }
 
   private async sumOfDateAmount(
@@ -29,7 +31,7 @@ export default class {
     try {
       let sum: number = 0;
 
-      const totalPrice = await prisma.transaction.findMany({
+      const totalPrice = await this.prisma.transaction.findMany({
         where: {
           createdAt: {
             gte: new Date(year, month, date),
