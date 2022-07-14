@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminAccount {
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now())
+  username       String
+  hashedPassword String
+  description    String?
+  systemId       String          @unique @default(dbgenerated("gen_random_uuid()"))
+  id             Int             @id @default(autoincrement())
+  relatedUserSid String?         @unique
+  adminRoleId    Int?
+  AdminRole      AdminRole?      @relation(fields: [adminRoleId], references: [id])
+  User           User?           @relation(fields: [relatedUserSid], references: [systemId])
+  StoreProducts  StoreProducts[]
+}
+
+model AdminRole {
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now())
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  permissions  Json
+  AdminAccount AdminAccount[]
+}
+
+model Category {
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  name           String
+  color          String
+  id             Int              @id @default(autoincrement())
+  is_deleted     Boolean          @default(false)
+  systemId       String           @unique @default(dbgenerated("gen_random_uuid()"))
+  Product        Product[]
+  DiscountPolicy DiscountPolicy[]
+}
+
+model Coupon {
+  id                            String       @id
+  createdAt                     DateTime     @default(now())
+  updatedAt                     DateTime     @default(now())
+  name                          String
+  expiresAt                     DateTime?
+  amount                        Int
+  systemId                      String       @unique
+  issuerSid                     String
+  receiverSid                   String
+  usedTransactionSid            String?
+  User_Coupon_issuerSidToUser   User         @relation("Coupon_issuerSidToUser", fields: [issuerSid], references: [systemId])
+  User_Coupon_receiverSidToUser User         @relation("Coupon_receiverSidToUser", fields: [receiverSid], references: [systemId])
+  Transaction                   Transaction? @relation(fields: [usedTransactionSid], references: [systemId])
+}
+
+model DiscountPolicy {
+  createdAt                       DateTime   @default(now())
+  updatedAt                       DateTime   @default(now())
+  fixedPrice                      Int?
+  percentRate                     Int?
+  id                              Int        @id @default(autoincrement())
+  systemId                        String     @unique @default(dbgenerated("gen_random_uuid()"))
+  eventSid                        String?
+  Event                           Event?     @relation(fields: [eventSid], references: [systemId])
+  Category                        Category[]
+  Product_discountExcludedProduct Product[]  @relation("discountExcludedProduct")
+  Product_discountTargetProduct   Product[]  @relation("discountTargetProduct")
+}
+
+model Event {
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  startsAt       DateTime?
+  endsAt         DateTime?
+  title          String
+  description    String
+  url            String
+  systemId       String           @unique @default(dbgenerated("gen_random_uuid()"))
+  id             Int              @id @default(autoincrement())
+  DiscountPolicy DiscountPolicy[]
+}
+
+model GeneralCard {
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @default(now())
+  cardNumber       String
+  validMonth       Int
+  validYear        Int
+  billingKey       String
+  id               Int           @id @default(autoincrement())
+  systemId         String        @unique @default(dbgenerated("gen_random_uuid()"))
+  paymentMethodSid String        @unique
+  PaymentMethod    PaymentMethod @relation(fields: [paymentMethodSid], references: [systemId])
+}
+
+model Notice {
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  title       String
+  description String?
+  url         String?
+  systemId    String    @unique @default(dbgenerated("gen_random_uuid()"))
+  id          Int       @id @default(autoincrement())
+  authorSid   String
+  User        User      @relation(fields: [authorSid], references: [systemId])
+}
+
+model PaymentMethod {
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now())
+  type        PaymentMethodType
+  color       String?
+  name        String?
+  systemId    String            @unique
+  id          Int               @id @default(autoincrement())
+  is_deleted  Boolean           @default(false)
+  ownerSid    String
+  User        User              @relation(fields: [ownerSid], references: [systemId])
+  GeneralCard GeneralCard?
+  PrepaidCard PrepaidCard?
+  Transaction Transaction[]
+}
+
+model PosDevice {
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now())
+  name        String
+  disabled    Boolean       @default(false)
+  is_deleted  Boolean       @default(false)
+  systemId    String        @unique @default(dbgenerated("gen_random_uuid()"))
+  id          Int           @id @default(autoincrement())
+  Transaction Transaction[]
+}
+
+model PrepaidCard {
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @default(now())
+  balance                  Int                        @default(0)
+  id                       Int                        @id @default(autoincrement())
+  systemId                 String                     @unique @default(dbgenerated("gen_random_uuid()"))
+  paymentMethodSid         String                     @unique
+  PaymentMethod            PaymentMethod              @relation(fields: [paymentMethodSid], references: [systemId])
+  PrepaidCardChargeHistory PrepaidCardChargeHistory[]
+}
+
+model PrepaidCardChargeHistory {
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @default(now())
+  delta                Int
+  status               TransactionStatus
+  method               String
+  detailInfo           String
+  id                   Int               @id @default(autoincrement())
+  systemId             String            @unique @default(dbgenerated("gen_random_uuid()"))
+  targetPrepaidCardSid String
+  PrepaidCard          PrepaidCard       @relation(fields: [targetPrepaidCardSid], references: [systemId])
+}
+
+model Product {
+  createdAt                              DateTime          @default(now())
+  updatedAt                              DateTime          @default(now())
+  name                                   String
+  barcode                                String            @unique @default(dbgenerated("gen_random_uuid()"))
+  purchaseCost                           Int
+  sellingPrice                           Int
+  sellingStopped                         Boolean           @default(false)
+  id                                     Int               @id @default(autoincrement())
+  systemId                               String            @unique @default(dbgenerated("gen_random_uuid()"))
+  is_deleted                             Boolean           @default(false)
+  alias                                  String?
+  categorySid                            String
+  Category                               Category          @relation(fields: [categorySid], references: [systemId])
+  ProductInOutLog                        ProductInOutLog[]
+  Transaction                            Transaction[]
+  DiscountPolicy_discountExcludedProduct DiscountPolicy[]  @relation("discountExcludedProduct")
+  DiscountPolicy_discountTargetProduct   DiscountPolicy[]  @relation("discountTargetProduct")
+}
+
+model ProductInOutLog {
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  delta          Int
+  message        String?
+  id             Int              @id @default(autoincrement())
+  type           ProductInOutType
+  unitCost       Int
+  systemId       String           @unique @default(dbgenerated("gen_random_uuid()"))
+  productSid     String
+  storeingSid    String?
+  transactionSid String?
+  Product        Product          @relation(fields: [productSid], references: [systemId])
+  StoreProducts  StoreProducts?   @relation(fields: [storeingSid], references: [systemId])
+  Transaction    Transaction?     @relation(fields: [transactionSid], references: [systemId])
+}
+
+model StoreProducts {
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  id              Int               @id @default(autoincrement())
+  systemId        String            @unique @default(dbgenerated("gen_random_uuid()"))
+  totalCost       Int
+  storeDate       DateTime          @default(now())
+  title           String            @unique
+  workerSid       String
+  AdminAccount    AdminAccount      @relation(fields: [workerSid], references: [systemId])
+  ProductInOutLog ProductInOutLog[]
+}
+
+model Transaction {
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now())
+  billingId         String?
+  totalPrice        Int
+  status            Transaction_status
+  statusText        String?
+  transactionMethod TransactionMethod
+  systemId          String             @unique
+  id                Int                @id @default(autoincrement())
+  purchaseType      PurchaseType?
+  purchaseDetail    Json?
+  posDeviceSid      String?
+  usedCardSid       String
+  userSid           String
+  PosDevice         PosDevice?         @relation(fields: [posDeviceSid], references: [systemId])
+  PaymentMethod     PaymentMethod      @relation(fields: [usedCardSid], references: [systemId])
+  User              User               @relation(fields: [userSid], references: [systemId])
+  Coupon            Coupon[]
+  ProductInOutLog   ProductInOutLog[]
+  Product           Product[]
+}
+
+model User {
+  id                              Int             @id @default(autoincrement())
+  systemId                        String          @unique @default(dbgenerated("gen_random_uuid()"))
+  createdAt                       DateTime        @default(now())
+  updatedAt                       DateTime        @default(now())
+  isDisabled                      Boolean         @default(false)
+  accountName                     String          @unique
+  name                            String
+  isTeacher                       Boolean?        @default(false)
+  profileImage                    String?
+  paymentPin                      String?
+  deviceUid                       String?
+  bioKey                          String?
+  phoneNumber                     String?
+  AdminAccount                    AdminAccount?
+  Coupon_Coupon_issuerSidToUser   Coupon[]        @relation("Coupon_issuerSidToUser")
+  Coupon_Coupon_receiverSidToUser Coupon[]        @relation("Coupon_receiverSidToUser")
+  Notice                          Notice[]
+  PaymentMethod                   PaymentMethod[]
+  Transaction                     Transaction[]
+}
+
+model UserPassword {
+  id           Int    @id @default(autoincrement())
+  accountName  String @unique
+  passwordHash String
+}
+
+enum PaymentMethodType {
+  PREPAID
+  GENERAL
+}
+
+enum ProductInOutType {
+  INCOME
+  OUTCOME
+}
+
+enum PurchaseType {
+  COUPON
+  PRINTER
+  GENERAL
+}
+
+enum TransactionMethod {
+  SMS
+  APP_QR
+  FACESIGN
+  INAPP
+}
+
+enum TransactionStatus {
+  CONFIRMED
+  CANCELED
+  PENDING
+  ERROR
+}
+
+enum Transaction_status {
+  CONFIRMED
+  CANCELED
+  PENDING
+  ERROR
+}

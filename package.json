@@ -1,0 +1,22 @@
+{
+  "name": "dimipay-total-sales-amount",
+  "version": "1.0.0",
+  "description": "dimipay total sales amount spreadsheet",
+  "author": ":3indblown Leaf",
+  "license": "MIT",
+  "scripts": {
+    "cli": "ts-node src/cli.ts",
+    "db:pull": "prisma db pull && prisma generate",
+    "clean": "rm -rf *.xlsx"
+  },
+  "devDependencies": {
+    "ts-node": "^10.8.2",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.0.0",
+    "commander": "^9.3.0",
+    "enquirer": "^2.3.6",
+    "exceljs": "^4.3.0"
+  }
+}

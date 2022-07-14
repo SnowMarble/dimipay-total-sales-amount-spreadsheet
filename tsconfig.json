@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2015",
+    "strict": true,
+    "importHelpers": true,
+    "noImplicitReturns": true,
+    "moduleResolution": "Node",
+    "strictNullChecks": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  },
+  "exclude": ["node_modules", "dist"]
+}
