@@ -15,25 +15,38 @@ yarn cli
 ### cli usage
 
 ```
-Usage: cli [options]
+Commands:
+  month [options]
+  Options:
+    -y, --year <number>    target year (default: current year)
+    -m, --month <number>   target month (default: current month)
+    -o, --output <string>
+    --no-separator         separate amount with comma
+    -f, --force            overwrite output file
+    --skip-zero            skip zero amount
+    -h, --help             display help for command
 
-Options:
-  -y, --year <number>    target year (default: current year)
-  -m, --month <number>   target month (default: current month)
-  -o, --output <string>
-  --no-separator         separate amount with comma
-  -f, --force            overwrite output file (default: false)
-  --skip-zero            skip zero amount (default: false)
-  -h, --help             display help for command
+  all [options]
+  Options:
+    -o, --output <string>
+    --no-separator         separate amount with comma
+    -f, --force            overwrite output file
+    --skip-zero            skip zero amount
+
+  help [command]   display help for command
+
+
 ```
 
 ### example
 
 ```
-yarn cli -m 6 -f --skip-sero
+yarn cli month -m 6 -f --skip-sero
 ```
 
-outpue default is `{year}-{month} sales amount.xlsx`
+```
+yarn cli all -f
+```
 
 ## API
 
@@ -44,12 +57,23 @@ import Generate from '.';
 const generator = new Generator();
 ```
 
-the only allowed method is `generate`
+### generateByMonth
 
 ```ts
-generator.generate({
+generator.generateByMonth({
   year?: number;
   month?: number;
+  output?: string;
+  separator?: boolean;
+  skipZero?: boolean;
+  force?: boolean;
+})
+```
+
+### generateAll
+
+```ts
+generator.generateByMonth({
   output?: string;
   separator?: boolean;
   skipZero?: boolean;
