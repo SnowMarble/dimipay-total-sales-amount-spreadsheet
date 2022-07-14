@@ -3,7 +3,14 @@ import { prompt } from 'enquirer';
 import { existsSync } from 'fs';
 import prisma from './libs/prisma';
 
-import type { GenerateParams } from './types';
+interface GenerateParams {
+  year?: number;
+  month?: number;
+  output?: string;
+  separator?: boolean;
+  skipZero?: boolean;
+  force?: boolean;
+}
 
 export default class {
   private workbook: Excel.Workbook;
