@@ -16,11 +16,48 @@ export default class {
   private workbook: Excel.Workbook;
   private worksheet: Excel.Worksheet;
   private prisma: PrismaClient;
+  private columns: Record<'date' | 'amount', string>;
 
-  constructor() {
+  constructor(columns?: Record<'date' | 'amount', string>) {
     this.workbook = new Excel.Workbook();
     this.worksheet = this.workbook.addWorksheet();
     this.prisma = new PrismaClient();
+    this.columns = columns || { date: '날짜', amount: '판매 금액' };
+  }
+
+  *processGenerator(
+    target: string,
+    skipZero: boolean,
+    separator: boolean
+  ): Generator<() => void> {
+    let startTime: number;
+    let endTime: number;
+
+    yield () => {
+      startTime = performance.now();
+      console.log(`target:    ${target}`);
+      console.log(`skip zero: ${skipZero}`);
+      console.log(`separator: ${separator}`);
+    };
+
+    yield () => {
+      endTime = performance.now();
+      console.log(
+        `\nDone In: ${((endTime - startTime) / 1000).toFixed(2)}s ✨`
+      );
+    };
+  }
+
+  private initializeWorksheet(separator: boolean): void {
+    this.worksheet.columns = [
+      { header: this.columns.date, key: 'date', width: 12 },
+      {
+        header: this.columns.amount,
+        key: 'amount',
+        width: 12,
+        style: separator ? { numFmt: '#,##0' } : undefined,
+      },
+    ];
   }
 
   private async sumOfDateAmount(
@@ -34,8 +71,8 @@ export default class {
       const totalPrice = await this.prisma.transaction.findMany({
         where: {
           createdAt: {
-            gte: new Date(year, month, date),
-            lt: new Date(year, month, date + 1),
+            gte: new Date(year, month - 1, date),
+            lt: new Date(year, month - 1, date + 1),
           },
         },
         select: { totalPrice: true },
@@ -75,53 +112,79 @@ export default class {
     }
   }
 
-  public async generate({
+  public async generateByMonth({
     year = new Date().getFullYear(),
     month = new Date().getMonth() + 1,
     separator = true,
     skipZero = false,
     force = false,
-    output,
+    output = `${year}-${month} sales amount.xlsx`,
   }: GenerateParams): Promise<void> {
     try {
-      this.worksheet.columns = [
-        { header: '날짜', key: 'date', width: 12 },
-        {
-          header: '판매 금액',
-          key: 'amount',
-          width: 12,
-          style: separator ? { numFmt: '#,##0' } : undefined,
-        },
-      ];
+      this.initializeWorksheet(separator);
+      const process = this.processGenerator(
+        `${year}-${month}`,
+        skipZero,
+        separator
+      );
 
-      const startTime = performance.now();
-      const outputPath = output || `${year}-${month} sales amount.xlsx`;
-
-      console.log(`target:    ${year}-${month}`);
-      console.log(`output:    ${outputPath}`);
-      console.log(`skip zero: ${skipZero}`);
-      console.log(`separator: ${separator}`);
+      process.next().value();
 
       const lastDate = new Date(year, month, 0);
-
       for (let date = 1; date <= lastDate.getDate(); date++) {
-        const sum = await this.sumOfDateAmount(year, month - 1, date);
+        const sum = await this.sumOfDateAmount(year, month, date);
+
         if (sum === 0 && skipZero) continue;
+
         this.worksheet.addRow({
           date: `${year}-${month}-${date}`,
           amount: sum,
         });
       }
 
-      await this.saveFile(force, outputPath);
+      await this.saveFile(force, output);
 
-      const endTime = performance.now();
-      console.log(
-        `\nDone In: ${((endTime - startTime) / 1000).toFixed(2)}s ✨`
-      );
+      process.next().value();
     } catch (error) {
       console.error(error);
       process.exit(1);
     }
+  }
+
+  public async generateAll({
+    separator = true,
+    skipZero = false,
+    force = false,
+    output = 'sales amount.xlsx',
+  }: GenerateParams): Promise<void> {
+    this.initializeWorksheet(separator);
+    const process = this.processGenerator('all', skipZero, separator);
+    process.next().value();
+
+    const { createdAt: firstDay } = (
+      await this.prisma.transaction.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+        take: 1,
+      })
+    )[0];
+
+    for (let d = firstDay; d <= new Date(); d.setDate(d.getDate() + 1)) {
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const date = d.getDate();
+
+      const sum = await this.sumOfDateAmount(year, month, date);
+
+      if (sum === 0 && skipZero) continue;
+
+      this.worksheet.addRow({
+        date: `${year}-${month}-${date}`,
+        amount: sum,
+      });
+    }
+
+    await this.saveFile(force, output);
+    process.next().value();
   }
 }
